@@ -186,3 +186,73 @@ func generateGitArgs(repoPath string) []string {
 		repoPath,
 	}
 }
+
+
+func (gc Config) Commit(repoPath, targetPath, message string) error {
+	commandArgs := generateGitArgs(repoPath)
+	addCmd := []string{"add", filepath.Join(repoPath, targetPath)}
+	if _, err := utils.Exec("git", append(commandArgs, addCmd...)); err != nil {
+		return xerrors.Errorf("error in git add: %w", err)
+	}
+
+	commitCmd := []string{"commit", "--message", message}
+	if _, err := utils.Exec("git", append(commandArgs, commitCmd...)); err != nil {
+		return xerrors.Errorf("error in git commit: %w", err)
+	}
+
+	return nil
+}
+
+func (gc Config) Push(repoPath, branch string) error {
+	commandArgs := generateGitArgs(repoPath)
+	pushCmd := []string{"push", "origin", branch}
+	if _, err := utils.Exec("git", append(commandArgs, pushCmd...)); err != nil {
+		return xerrors.Errorf("error in git push: %w", err)
+	}
+	return nil
+}
+
+func (gc Config) Clean(repoPath string) error {
+	commandArgs := generateGitArgs(repoPath)
+	resetCmd := []string{"reset", "--hard", "HEAD"}
+	if _, err := utils.Exec("git", append(commandArgs, resetCmd...)); err != nil {
+		return xerrors.Errorf("git reset error: %w", err)
+	}
+
+	cleanCmd := []string{"clean", "-df"}
+	if _, err := utils.Exec("git", append(commandArgs, cleanCmd...)); err != nil {
+		return xerrors.Errorf("git clean error: %w", err)
+	}
+	return nil
+}
+
+func (gc Config) RemoteBranch(repoPath string) ([]string, error) {
+	commandArgs := generateGitArgs(repoPath)
+	branchCmd := []string{"branch", "--remote"}
+	output, err := utils.Exec("git", append(commandArgs, branchCmd...))
+	if err != nil {
+		return nil, xerrors.Errorf("error in git branch: %w", err)
+	}
+	return strings.Split(output, "\n"), nil
+}
+
+func (gc Config) Checkout(repoPath string, branch string) error {
+	commandArgs := generateGitArgs(repoPath)
+	checkoutCmd := []string{"checkout", branch}
+	_, err := utils.Exec("git", append(commandArgs, checkoutCmd...))
+	if err != nil {
+		return xerrors.Errorf("error in git checkout: %w", err)
+	}
+	return nil
+}
+
+func (gc Config) Status(repoPath string) ([]string, error) {
+	commandArgs := generateGitArgs(repoPath)
+
+	statusCmd := []string{"status", "--porcelain"}
+	output, err := utils.Exec("git", append(commandArgs, statusCmd...))
+	if err != nil {
+		return nil, xerrors.Errorf("error in git status: %w", err)
+	}
+	return strings.Split(strings.TrimSpace(output), "\n"), nil
+}
